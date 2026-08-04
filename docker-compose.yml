@@ -1,0 +1,148 @@
+services:
+  # ---------------------------------------------------------
+  # Laravel App (PHP-FPM)
+  # ---------------------------------------------------------
+  laravel:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    container_name: formbuilder-laravel
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./laravel:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # Web Server (Nginx)
+  # ---------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: formbuilder-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./laravel:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - laravel
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # Queue Worker
+  # ---------------------------------------------------------
+  queue-worker:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    container_name: formbuilder-queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3
+    volumes:
+      - ./laravel:/var/www/html
+    depends_on:
+      - laravel
+      - redis
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # Horizon Worker (Alternative to basic queue-worker, can use one or both based on env)
+  # ---------------------------------------------------------
+  horizon:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    container_name: formbuilder-horizon
+    restart: unless-stopped
+    command: php artisan horizon
+    volumes:
+      - ./laravel:/var/www/html
+    depends_on:
+      - laravel
+      - redis
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # FastAPI Microservice
+  # ---------------------------------------------------------
+  fastapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: formbuilder-fastapi
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./fastapi:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # FastAPI Worker (e.g. Celery or background tasks if needed)
+  # ---------------------------------------------------------
+  fastapi-worker:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: formbuilder-fastapi-worker
+    restart: unless-stopped
+    volumes:
+      - ./fastapi:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Example command, adjust based on task runner (e.g., celery)
+    command: tail -f /dev/null 
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # MySQL Database
+  # ---------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: formbuilder-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: formbuilder
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+    volumes:
+      - formbuilder-mysql-data:/var/lib/mysql
+    networks:
+      - formbuilder-network
+
+  # ---------------------------------------------------------
+  # Redis Cache & Queue Backend
+  # ---------------------------------------------------------
+  redis:
+    image: redis:alpine
+    container_name: formbuilder-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - formbuilder-redis-data:/data
+    networks:
+      - formbuilder-network
+
+networks:
+  formbuilder-network:
+    driver: bridge
+
+volumes:
+  formbuilder-mysql-data:
+  formbuilder-redis-data:
