@@ -10,9 +10,34 @@ use App\Models\FormVersion;
 
 Route::view('/', 'welcome');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::get('dashboard', function () {
+    $forms = auth()->user()->forms()->orderBy('updated_at', 'desc')->get();
+    return view('dashboard', compact('forms'));
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::post('/forms', function () {
+    $form = auth()->user()->forms()->create([
+        'title' => 'Untitled Form',
+        'slug' => \Illuminate\Support\Str::slug('Untitled Form ' . time()),
+        'status' => 'draft',
+    ]);
+    
+    // Create initial version
+    $version = $form->versions()->create([
+        'schema_data' => [
+            'version' => '1.0.0',
+            'metadata' => ['title' => 'Untitled Form'],
+            'fields' => [],
+            'layout' => ['sections' => [['id' => 'section_1', 'fields' => []]]]
+        ],
+        'schema_hash' => hash('sha256', json_encode([])),
+        'created_by' => auth()->id(),
+    ]);
+    
+    $form->update(['active_version_id' => $version->id]);
+    
+    return redirect()->route('builder', ['form' => $form->id]);
+})->middleware(['auth'])->name('forms.store');
 
 Route::view('profile', 'profile')
     ->middleware(['auth'])

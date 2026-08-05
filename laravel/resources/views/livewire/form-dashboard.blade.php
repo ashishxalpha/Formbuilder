@@ -74,4 +74,47 @@
             </div>
         </div>
     </div>
+
+    <!-- Submissions Table -->
+    <div class="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Submissions</h2>
+            <div class="flex space-x-3">
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search responses..." class="border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm text-sm">
+                <button wire:click="exportCsv" class="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">Export CSV</button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted At</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-full">Data Snapshot</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    @forelse($submissions as $sub)
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">#{{ $sub->id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $sub->created_at->format('M d, Y H:i') }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <div class="truncate max-w-2xl">
+                                    {!! $this->formatSubmissionData($sub->response_data) !!}
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No submissions found yet.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            {{ $submissions->links() }}
+        </div>
+    </div>
 </div>

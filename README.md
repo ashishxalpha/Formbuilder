@@ -10,6 +10,13 @@ This project establishes a production-quality SaaS backend foundation for an AI-
 - **Event-Driven & Activity Logging**: Full activity logs tracking creations, updates, and AI generations.
 - **Queueing & Caching**: Laravel Horizon and Redis cache invalidation strategies pre-configured for scale.
 
+## Database Indexes for Scale
+The MySQL schema is designed for scale with the following indexes:
+- `forms`: Indexed on `user_id` and `status` for rapid dashboard loading.
+- `form_versions`: Indexed on `form_id` and `created_by`.
+- `submissions`: Indexed on `form_id` and `form_version_id` (via foreign keys). At massive scale, a `created_at` index is utilized for pagination/sorting, and if querying across JSON is required, MySQL 8 generated virtual columns with BTREE indexes would be added to specific high-traffic field keys.
+- `ai_jobs` & `activity_logs`: Indexed on `form_id` for quick chronological retrieval on the dashboard.
+
 ## Running Tests
 Tests are written with Pest. Run them with:
 `./vendor/bin/pest`

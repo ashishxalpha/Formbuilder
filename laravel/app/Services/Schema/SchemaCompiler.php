@@ -67,13 +67,30 @@ class SchemaCompiler
                     $fieldRules[] = 'email';
                     break;
                 case 'number':
+                case 'rating':
                     $fieldRules[] = 'numeric';
                     if (isset($field['validation']['min'])) $fieldRules[] = 'min:' . $field['validation']['min'];
                     if (isset($field['validation']['max'])) $fieldRules[] = 'max:' . $field['validation']['max'];
                     break;
+                case 'checkbox':
+                    $fieldRules[] = 'array';
+                    break;
+                case 'file':
+                    $fieldRules[] = 'file';
+                    break;
+                case 'section_heading':
+                    $fieldRules = []; // No validation needed for UI elements
+                    break;
                 case 'text':
+                case 'textarea':
+                case 'radio':
+                case 'dropdown':
+                case 'phone':
+                case 'date':
                 default:
-                    $fieldRules[] = 'string';
+                    if (!empty($fieldRules)) {
+                        $fieldRules[] = 'string';
+                    }
                     if (isset($field['validation']['min'])) $fieldRules[] = 'min:' . $field['validation']['min'];
                     if (isset($field['validation']['max'])) $fieldRules[] = 'max:' . $field['validation']['max'];
                     break;

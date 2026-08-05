@@ -33,4 +33,11 @@ class FormVersion extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($version) {
+            \Illuminate\Support\Facades\Cache::forget("form_version_{$version->id}_compiled");
+        });
+    }
 }

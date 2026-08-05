@@ -29,7 +29,11 @@ class PublicFormRenderer extends Component
 
         // Initialize state
         foreach ($this->compiledData['compiled_schema']['fields'] as $field) {
-            $this->formData[$field['key']] = null;
+            if ($field['type'] === 'checkbox') {
+                $this->formData[$field['key']] = [];
+            } else {
+                $this->formData[$field['key']] = null;
+            }
         }
     }
 
