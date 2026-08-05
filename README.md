@@ -3,7 +3,7 @@
 This project is a complete, production-ready SaaS backend foundation for an AI-powered form builder, architected with a strict separation between a Laravel backend and a FastAPI Python microservice for AI processing.
 
 ## Live Demo & Credentials
-**Live URL**: [https://demo.ashishxlapha.me/](https://demo.ashishxlapha.me/) 
+**Live URL**: [https://demo.ashishxalpha.me/](https://demo.ashishxalpha.me/) 
 *(Note: This demo is restricted to 10 AI operations to prevent API abuse. The system runs seamlessly on a `$10/mo` DigitalOcean droplet using Docker Compose).*
 
 **Credentials**:
