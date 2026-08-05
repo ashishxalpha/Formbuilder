@@ -62,4 +62,44 @@ class AIClient
             }
         });
     }
+
+    public function upload(string $endpoint, string $filePath, string $filename): array
+    {
+        return PerformanceTimer::measure("ai_client_upload_$endpoint", function () use ($endpoint, $filePath, $filename) {
+            try {
+                Log::info("AI Client Upload: $endpoint", ['filename' => $filename]);
+
+                $response = Http::withHeaders([
+                        'Authorization' => "Bearer {$this->apiKey}",
+                        'Accept' => 'application/json',
+                    ])
+                    ->timeout($this->timeout)
+                    ->attach('file', file_get_contents($filePath), $filename)
+                    ->post($this->baseUrl . $endpoint);
+
+                $response->throw();
+
+                $data = $response->json();
+                Log::info("AI Client Upload Response: $endpoint", ['response' => $data]);
+                
+                MetricsLogger::increment('ai_upload_success');
+
+                return $data;
+
+            } catch (RequestException $e) {
+                MetricsLogger::increment('ai_upload_error');
+                Log::error("AI Client Upload Error: $endpoint", [
+                    'error' => $e->getMessage(),
+                    'response' => $e->response?->json(),
+                ]);
+                throw new \Exception("AI Service Error: " . $e->getMessage());
+            } catch (\Exception $e) {
+                MetricsLogger::increment('ai_upload_failure');
+                Log::error("AI Client Upload Fatal Error: $endpoint", [
+                    'error' => $e->getMessage(),
+                ]);
+                throw new \Exception("AI Gateway Unreachable: " . $e->getMessage());
+            }
+        });
+    }
 }

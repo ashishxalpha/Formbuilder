@@ -12,9 +12,14 @@ use App\Services\Builder\Commands\UpdateFieldCommand;
 use App\Services\Builder\Commands\DuplicateFieldCommand;
 use App\Services\Schema\SchemaCompiler;
 use Illuminate\Support\Str;
+use Livewire\WithFileUploads;
+use App\Models\ImportJob;
+use App\Jobs\ProcessImportJob;
 
 class FormBuilder extends Component
 {
+    use WithFileUploads;
+
     public Form $form;
     public array $schema;
     public string $rawJson;
@@ -46,6 +51,13 @@ class FormBuilder extends Component
     // AI Generation tracking
     public bool $hasPendingAiJob = false;
     public ?string $aiJobStatus = null;
+    
+    // Import tracking
+    public $importFile = null;
+    public ?ImportJob $importJob = null;
+    public array $importSchema = [];
+    public array $importWarnings = [];
+    public bool $showImportModal = false;
     
     public function nextStep()
     {
@@ -420,6 +432,89 @@ class FormBuilder extends Component
         }
         
         $this->saveStatus = 'Saved';
+    }
+
+    public function updatedImportFile()
+    {
+        $this->validate([
+            'importFile' => 'required|file|mimes:docx,xlsx|max:10240', // 10MB Max
+        ]);
+
+        $path = $this->importFile->store('imports', 'local');
+        $ext = $this->importFile->getClientOriginalExtension();
+
+        $this->importJob = ImportJob::create([
+            'form_id' => $this->form->id,
+            'type' => $ext,
+            'status' => 'pending',
+            'file_path' => $path,
+        ]);
+
+        ProcessImportJob::dispatch($this->importJob);
+        $this->showImportModal = true;
+    }
+
+    public function checkImportJobStatus()
+    {
+        if (!$this->importJob) return;
+
+        $this->importJob->refresh();
+
+        if ($this->importJob->status === 'preview') {
+            $schemaData = $this->importJob->schema ?? [];
+            $this->importSchema = $schemaData['schema']['fields'] ?? [];
+            $this->importWarnings = $schemaData['warnings'] ?? [];
+        } elseif ($this->importJob->status === 'failed') {
+            $this->addError('importFile', 'Import failed: ' . $this->importJob->error);
+        }
+    }
+
+    public function cancelImport()
+    {
+        if ($this->importJob) {
+            $this->importJob->delete();
+        }
+        $this->importJob = null;
+        $this->importSchema = [];
+        $this->importWarnings = [];
+        $this->importFile = null;
+        $this->showImportModal = false;
+    }
+
+    public function commitImport()
+    {
+        if (empty($this->importSchema)) return;
+
+        // Ensure keys are unique before merging
+        $existingKeys = collect($this->schema['fields'])->pluck('key')->all();
+        $fieldsToAdd = [];
+        foreach ($this->importSchema as $field) {
+            $baseKey = $field['key'] ?? 'field_' . time();
+            $key = $baseKey;
+            $counter = 1;
+            while (in_array($key, $existingKeys)) {
+                $key = $baseKey . '_' . $counter++;
+            }
+            $field['key'] = $key;
+            $existingKeys[] = $key;
+            $fieldsToAdd[] = $field;
+        }
+
+        // Append fields to schema
+        $this->schema['fields'] = array_merge($this->schema['fields'], $fieldsToAdd);
+
+        // Append to first section layout
+        if (isset($this->schema['layout']['sections'][0]['fields'])) {
+            $newIds = collect($fieldsToAdd)->pluck('id')->all();
+            $this->schema['layout']['sections'][0]['fields'] = array_merge(
+                $this->schema['layout']['sections'][0]['fields'],
+                $newIds
+            );
+        }
+
+        $this->pushHistory();
+        $this->syncAndSave();
+        $this->cancelImport();
     }
 
     public function render()

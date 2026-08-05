@@ -34,7 +34,7 @@ class GenerateFormJob implements ShouldQueue
         
         try {
             // 1. Call FastAPI to generate schema
-            $response = $client->post('/generate', [
+            $response = $client->post('/forms/generate', [
                 'prompt' => $this->prompt,
                 'model' => $this->aiJob->model,
                 'temperature' => (float)$this->aiJob->temperature
@@ -50,7 +50,7 @@ class GenerateFormJob implements ShouldQueue
                 Log::warning("AI Schema Validation Failed. Attempting Repair.", ['error' => $e->getMessage()]);
                 
                 // 3. Fallback: Repair malformed schema via FastAPI
-                $repairResponse = $client->post('/repair', [
+                $repairResponse = $client->post('/forms/repair', [
                     'malformed_json' => is_string($rawSchema) ? $rawSchema : json_encode($rawSchema),
                     'error_details' => $e->getMessage()
                 ]);

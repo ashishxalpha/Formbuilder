@@ -118,6 +118,13 @@
                             <button wire:click="undo" class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded" title="Undo"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>
                             <button wire:click="redo" class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded" title="Redo"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"></path></svg></button>
                         </div>
+                        <div class="flex space-x-2">
+                            <input type="file" id="importFileInput" wire:model="importFile" class="hidden" accept=".docx,.xlsx">
+                            <button onclick="document.getElementById('importFileInput').click()" class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded shadow flex items-center space-x-1 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                <span>Import Word/Excel</span>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="p-8 flex-1 overflow-y-auto bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiNlN2U1ZTQiLz48L3N2Zz4=')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMzNzQxNTEiLz48L3N2Zz4=')]">
@@ -129,14 +136,23 @@
                         @else
                             <div class="space-y-4 max-w-2xl mx-auto">
                                 @foreach($schema['fields'] as $field)
-                                    <div wire:key="{{ $field['id'] }}" wire:click="selectField('{{ $field['id'] }}')" 
-                                         class="p-4 rounded-lg border {{ $selectedFieldId === $field['id'] ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500' }} group relative cursor-pointer shadow-sm transition-all">
+                                    <div wire:key="{{ $field['id'] }}" 
+                                         wire:click="selectField('{{ $field['id'] }}')" 
+                                         draggable="true"
+                                         wire:dragstart="dragStart('{{ $field['id'] }}')"
+                                         wire:dragenter.prevent="dragEnter('{{ $field['id'] }}')"
+                                         wire:dragover.prevent
+                                         wire:drop="drop('{{ $field['id'] }}')"
+                                         class="p-4 rounded-lg border {{ $selectedFieldId === $field['id'] ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500' }} group relative cursor-grab active:cursor-grabbing shadow-sm transition-all {{ $draggingFieldId === $field['id'] ? 'opacity-50 border-dashed border-2' : '' }}">
                                         
                                         <div class="flex justify-between items-center mb-2">
-                                            <label class="font-medium text-gray-700 dark:text-gray-200 text-sm">
-                                                {{ $field['label'] ?? 'Untitled Field' }}
-                                                @if($field['required'] ?? false) <span class="text-red-500 dark:text-red-400">*</span> @endif
-                                            </label>
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                                <label class="font-medium text-gray-700 dark:text-gray-200 text-sm">
+                                                    {{ $field['label'] ?? 'Untitled Field' }}
+                                                    @if($field['required'] ?? false) <span class="text-red-500 dark:text-red-400">*</span> @endif
+                                                </label>
+                                            </div>
                                             
                                             <div class="hidden group-hover:flex space-x-1 text-gray-400 dark:text-gray-500">
                                                 <button wire:click.stop="duplicateField('{{ $field['id'] }}')" class="p-1 hover:text-blue-500 dark:hover:text-blue-400" title="Duplicate"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>
@@ -182,6 +198,20 @@
                                                 @if(!empty($field['help_text']))
                                                     <p class="text-sm text-gray-500 mt-1">{{ $field['help_text'] }}</p>
                                                 @endif
+                                            </div>
+                                        @elseif($field['type'] === 'date')
+                                            <input type="date" disabled 
+                                                   class="w-full border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 text-sm py-2 px-3 text-gray-800 dark:text-gray-200 disabled:opacity-100">
+                                        @elseif($field['type'] === 'file')
+                                            <div class="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900/50">
+                                                <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                                <span class="text-sm text-gray-500 dark:text-gray-400">Click or drag file to upload</span>
+                                            </div>
+                                        @elseif($field['type'] === 'rating')
+                                            <div class="flex items-center space-x-1 mt-1">
+                                                @for($i = 1; $i <= ($field['validation']['max'] ?? 5); $i++)
+                                                    <svg class="w-6 h-6 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                                @endfor
                                             </div>
                                         @else
                                             <div class="p-3 bg-gray-50 dark:bg-gray-900 rounded border border-gray-100 dark:border-gray-700 text-sm text-gray-400 dark:text-gray-500 text-center">
@@ -258,6 +288,44 @@
                                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Required Field</span>
                                             </label>
                                         </div>
+
+                                        <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Help Text</label>
+                                            <input type="text" 
+                                                wire:model.live.debounce.500ms="editingFieldHelpText"
+                                                class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                                                placeholder="Optional description">
+                                        </div>
+
+                                        @if(in_array($selectedField['type'], ['text', 'textarea', 'email', 'phone', 'number']))
+                                            <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Placeholder</label>
+                                                <input type="text" 
+                                                    wire:model.live.debounce.500ms="editingFieldPlaceholder"
+                                                    class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400">
+                                            </div>
+                                        @endif
+
+                                        @if(in_array($selectedField['type'], ['number', 'text', 'textarea']))
+                                            <div class="pt-2 border-t border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                        {{ $selectedField['type'] === 'number' ? 'Min' : 'Min Length' }}
+                                                    </label>
+                                                    <input type="number" 
+                                                        wire:model.live.debounce.500ms="editingFieldValidationMin"
+                                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                        {{ $selectedField['type'] === 'number' ? 'Max' : 'Max Length' }}
+                                                    </label>
+                                                    <input type="number" 
+                                                        wire:model.live.debounce.500ms="editingFieldValidationMax"
+                                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400">
+                                                </div>
+                                            </div>
+                                        @endif
                                         
                                         @if(in_array($selectedField['type'], ['dropdown', 'radio', 'checkbox']))
                                             <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -355,4 +423,100 @@
     <div style="display: none;">
         <textarea wire:model.live="rawJson"></textarea>
     </div>
+
+    <!-- Import Modal -->
+    @if($showImportModal)
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Import Document</h3>
+                    <button wire:click="cancelImport" class="text-gray-400 hover:text-gray-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <div class="p-6 overflow-y-auto flex-1">
+                    @if($importJob && $importJob->status === 'pending' || ($importJob && $importJob->status === 'processing'))
+                        <div wire:poll.2s="checkImportJobStatus" class="flex flex-col items-center justify-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                            <p class="text-gray-600 dark:text-gray-300">Processing document... AI is inferring field types.</p>
+                        </div>
+                    @elseif($importJob && $importJob->status === 'preview')
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Review the detected fields. AI has attempted to map the best field type for each block. You can override them before committing.</p>
+                            
+                            @if(count($importWarnings) > 0)
+                                <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4 mb-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm text-yellow-800 dark:text-yellow-200 font-medium">Warnings during import:</h3>
+                                            <ul class="mt-1 list-disc list-inside text-xs text-yellow-700 dark:text-yellow-300">
+                                                @foreach($importWarnings as $warning)
+                                                    <li>{{ $warning }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                                <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+                                    <thead class="bg-gray-50 dark:bg-gray-800">
+                                        <tr>
+                                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Original Label</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Inferred Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                                        @foreach($importSchema as $index => $field)
+                                            <tr>
+                                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900 dark:text-gray-100 font-medium">
+                                                    {{ $field['label'] }}
+                                                    @if($field['required'] ?? false) <span class="text-red-500">*</span> @endif
+                                                </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                                    <select wire:model="importSchema.{{ $index }}.type" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:max-w-xs sm:text-sm sm:leading-6 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-600">
+                                                        <option value="text">Short Text</option>
+                                                        <option value="textarea">Long Text</option>
+                                                        <option value="number">Number</option>
+                                                        <option value="email">Email</option>
+                                                        <option value="date">Date</option>
+                                                        <option value="checkbox">Checkbox List</option>
+                                                        <option value="radio">Radio Buttons</option>
+                                                        <option value="dropdown">Dropdown</option>
+                                                        <option value="file">File Upload</option>
+                                                        <option value="rating">Rating</option>
+                                                        <option value="section_heading">Section Heading</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @elseif($importJob && $importJob->status === 'failed')
+                        <div class="flex flex-col items-center justify-center py-12">
+                            <svg class="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Import Failed</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center max-w-md">{{ $importJob->error }}</p>
+                        </div>
+                    @endif
+                </div>
+                
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
+                    <button wire:click="cancelImport" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                    @if($importJob && $importJob->status === 'preview')
+                        <button wire:click="commitImport" class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm transition font-medium">Commit & Add to Form</button>
+                    @endif
+                </div>
+
+            </div>
+        </div>
+    @endif
 </div>

@@ -14,7 +14,7 @@
                     Create New Form
                 </button>
             </form>
-            @livewire('create-ai-form')
+            <livewire:create-ai-form />
         </div>
         </div>
     </x-slot>

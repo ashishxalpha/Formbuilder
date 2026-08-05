@@ -15,7 +15,12 @@ class ImportJob extends Model
         'type',
         'status',
         'file_path',
+        'schema',
         'error',
+    ];
+
+    protected $casts = [
+        'schema' => 'array',
     ];
 
     public function form(): BelongsTo
