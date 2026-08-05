@@ -7,44 +7,41 @@ from app.schemas.forms import (
     InferValidationsRequest,
     TranslateFormRequest
 )
-import uuid
+from app.services.generation_pipeline import GenerationPipeline
 
 router = APIRouter()
 
 @router.post("/generate")
 async def generate_form(request: GenerateFormRequest):
-    # Mock response
+    schema = GenerationPipeline.generate_form(request.prompt, request.model, request.temperature)
     return {
-        "schema": {
-            "version": "1.0.0",
-            "metadata": {"title": "Generated Form"},
-            "fields": []
-        },
-        "input_tokens": 150,
-        "output_tokens": 300,
+        "schema": schema,
+        "input_tokens": 0, # Mock token counts if not using streaming/response metadata
+        "output_tokens": 0,
         "prompt_version": "v1.0"
     }
 
 @router.post("/edit")
 async def edit_form(request: EditFormRequest):
-    # Mock response
+    schema = GenerationPipeline.edit_form(request.prompt, request.schema_data)
     return {
-        "schema": request.schema_data,
-        "input_tokens": 100,
-        "output_tokens": 50
+        "schema": schema,
+        "input_tokens": 0,
+        "output_tokens": 0
     }
 
 @router.post("/repair")
 async def repair_schema(request: RepairSchemaRequest):
-    # Mock response
+    schema = GenerationPipeline.repair_schema(request.malformed_json, request.error_details)
     return {
-        "schema": {"repaired": True},
+        "schema": schema,
         "success": True,
         "error_message": None
     }
 
 @router.post("/translate")
 async def translate_form(request: TranslateFormRequest):
+    # Simplified mock for translate for now
     return {"schema": request.schema_data}
 
 @router.post("/infer-validations")
