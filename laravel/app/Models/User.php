@@ -29,4 +29,19 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function forms(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Form::class);
+    }
+
+    public function templates(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Template::class, 'created_by');
+    }
+
+    public function activityLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
 }

@@ -20,6 +20,5 @@ app.add_middleware(
 def health_check():
     return {"status": "ok", "service": "fastapi-ai"}
 
-# To be implemented
-# app.include_router(forms.router, prefix="/forms", tags=["forms"])
-# app.include_router(imports.router, prefix="/imports", tags=["imports"])
+app.include_router(forms.router, prefix="/forms", tags=["forms"])
+app.include_router(imports.router, prefix="/imports", tags=["imports"])
