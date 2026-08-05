@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Client\RequestException;
 use App\Observability\PerformanceTimer;
 use App\Observability\MetricsLogger;
@@ -25,6 +26,10 @@ class AIClient
 
     public function post(string $endpoint, array $payload): array
     {
+        if (Cache::increment('llm_demo_limit_count') > 10) {
+            throw new \Exception("Demo limit reached: Only 10 AI operations are allowed on this demo server.");
+        }
+
         return PerformanceTimer::measure("ai_client_post_$endpoint", function () use ($endpoint, $payload) {
             try {
                 Log::info("AI Client Request: $endpoint", ['payload' => $payload]);
@@ -65,6 +70,10 @@ class AIClient
 
     public function upload(string $endpoint, string $filePath, string $filename): array
     {
+        if (Cache::increment('llm_demo_limit_count') > 10) {
+            throw new \Exception("Demo limit reached: Only 10 AI operations are allowed on this demo server.");
+        }
+
         return PerformanceTimer::measure("ai_client_upload_$endpoint", function () use ($endpoint, $filePath, $filename) {
             try {
                 Log::info("AI Client Upload: $endpoint", ['filename' => $filename]);
